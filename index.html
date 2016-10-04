@@ -1,0 +1,115 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.19.0/codemirror.css">
+    </head>
+    <body>
+        <h1> Safia Tries Realtime </h1>
+        <textarea id="cm-ta"></textarea>
+        <button id="auth-button">Authorize</button>
+        <button onclick="window.open(window.location.href);return false;">Same Tab</button>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.19.0/codemirror.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.19.0/mode/javascript/javascript.js">
+        </script>
+        <script src="https://apis.google.com/js/api.js"></script>
+        <script src="https://cdn.rawgit.com/googledrive/realtime-utils/master/realtime-client-utils.js">
+        </script>
+        <script>
+            var clientId = "797238251386-v83tn00ep3o16ue347h51nae5087n5dh.apps.googleusercontent.com";
+            var cm = CodeMirror.fromTextArea(document.getElementById('cm-ta'), {
+                mode: "javascript",
+            });
+
+            // Use the Realtime util library to help us with authorization
+            var realtimeUtils = new utils.RealtimeUtils({ clientId: clientId });
+            authorize();
+
+            // Authorize our application
+            function authorize() {
+                realtimeUtils.authorize(function(response) {
+                    if (response.error) {
+                        console.log(response.error);
+                        // If the authorization failed that means the user hasn;t
+                        // given permission to this app before so we are going to show
+                        // a button to have them do so
+                        var button = document.getElementById('auth-button');
+                        button.classList.add('visible');
+                        // Clicking the button will attempt to authorize
+                        // The second parameter tells it to use a popup
+                        button.addEventListener('click', function() {
+                            realtimeUtils.authorize(function(response) {
+                                start();
+                            }, true);
+                        });
+                    } else {
+                        console.log('authorize a-ok');
+                        start();
+                    }
+                }, false);
+            }
+
+
+            function start() {
+                // Yay, we are authenticated that means we can start to play
+                // the document id is sotred as a url parameter so if it doesn't
+                // exist we will need to create a new document
+                // I guess this could also be used as a session ID
+                var id = realtimeUtils.getParam('id');
+                if (id) {
+                    console.log('here is id', id);
+                    // Load up the doucment
+                    realtimeUtils.load(id.replace('/', ''), onFileLoaded, onFileInitialize);
+                } else {
+                    // Create an new document, add it to the URL
+                    realtimeUtils.createRealtimeFile('New Quickstart File', function(createResponse) {
+                        console.log('here is id', createResponse.id);
+                        window.history.pushState(null, null, '?id=' + createResponse.id);
+                        realtimeUtils.load(createResponse.id, onFileLoaded, onFileInitialize);
+                    });
+                }
+            }
+
+            function onFileInitialize(model) {
+                // When we load a file we need to add a new string to the model
+                console.log('inside onFileInitialize');
+                var string = model.createString();
+                string.setText('Booyah!');
+                model.getRoot().set('text', string);
+            }
+
+            function onFileLoaded(doc) {
+                // When the document is loaded we are going to bind the content
+                // in it's model to the codemirror text area
+                console.log('inside onFileLoaded');
+                var collaborativeString = doc.getModel().getRoot().get('text');
+                gapi.drive.realtime.databinding.bindString(collaborativeString, cm.getTextArea());
+            }
+
+           
+            /*
+              This is just for working with the in-memory document model
+              Pretty simple but gives you nothing out the box
+            function start() {
+                // Create a new document stored in memory as opposed to on a Google Drive account
+                var doc = gapi.drive.realtime.newInMemoryDocument();
+                // Fetch a model of the document
+                // A model can hold instances of different collaborative elements like stirngs
+                // I'm imagining a model in the nteract context will be an entire notebook
+                var model = doc.getModel();
+                // Create a string that is shared between users
+                // I imagine a string will be a cell
+                // Hm. How would you sync up output cells?
+                var collaborativeString = model.createString();
+                // Initialize our shared string
+                collaborativeString.setText('CodeMirror Real-time');
+                // The root is a collaborative map which is basically a map
+                // association between keys and collaborative objects
+                model.getRoot().set('text', collaborativeString);
+                // Creates a binding between the collaborativeString and the text area
+                // If the text area changes so does the string and vice versa
+                // The second parameter *must* be a text area
+                gapi.drive.realtime.databinding.bindString(collaborativeString, cm.getTextArea());
+            }
+            */
+        </script>
+    </body>
+</html>
