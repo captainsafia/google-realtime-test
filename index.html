@@ -50,7 +50,7 @@
 
             function start() {
                 // Yay, we are authenticated that means we can start to play
-                // the document id is sotred as a url parameter so if it doesn't
+                // the document id is stored as a url parameter so if it doesn't
                 // exist we will need to create a new document
                 // I guess this could also be used as a session ID
                 var id = realtimeUtils.getParam('id');
@@ -61,7 +61,7 @@
                 } else {
                     // Create an new document, add it to the URL
                     realtimeUtils.createRealtimeFile('New Quickstart File', function(createResponse) {
-                        console.log('here is id', createResponse.id);
+                        console.log('Here is id', createResponse.id);
                         window.history.pushState(null, null, '?id=' + createResponse.id);
                         realtimeUtils.load(createResponse.id, onFileLoaded, onFileInitialize);
                     });
